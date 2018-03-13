@@ -2,7 +2,7 @@
 Author: cb
 Date: March 18
 Purpose: publish IMU-data from BNO055
-Attention: test
+Attention: test2
 */
 #include <Wire.h>
 #include <Adafruit_BNO055.h>
