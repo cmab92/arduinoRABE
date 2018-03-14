@@ -12,16 +12,21 @@ Attention:
 #include <ros.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Vector3.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Float32.h>
 
-// #define TRIGGER1 7
+#define ONEQUATERNION 16384 // = 2^14 LSB
+
+#define TRIGGER1 7
 // #define TRIGGER2 9
 // #define TRIGGER3 11
 // #define TRIGGER4 13
-// #define ECHO1 6
+#define ECHO1 6
 // #define ECHO2 8
 // #define ECHO3 10
 // #define ECHO4 12
+
+void measureImu( void );
+float measureDist( void );
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -29,17 +34,17 @@ ros::NodeHandle nh;
 geometry_msgs::Vector3 linacc_msg;
 geometry_msgs::Vector3 angvec_msg;
 geometry_msgs::Quaternion quat_msg;
-// std_msgs::Float32MultiArray dist_msg;
+std_msgs::Float32 dist_msg;
 ros::Publisher pub_linacc("linacc_msg", &linacc_msg);
 ros::Publisher pub_angvec("angvec_msg", &angvec_msg);
 ros::Publisher pub_quat("quat_msg", &quat_msg);
-// ros::Publisher pub_dist("dist_msg", &dist_msg);
+ros::Publisher pub_dist("dist_msg", &dist_msg);
 
-void getCalReg( void ){
-  for ( int i = 0x55; i< 0x6b; i++ ){
-    // Serial.println(bno.readBNO(0, i ) );
-  }
-}
+// void getCalReg( void ){
+//   for ( int i = 0x55; i< 0x6b; i++ ){
+//     // // Serial.println(bno.readBNO(0, i ) );
+//   }
+// }
 
 void writeBNO( bool page, byte reg, byte value ){
   // write safely
@@ -84,19 +89,11 @@ void setCalReg( void ){
 
 void setup() {
 
-    // pinMode(TRIGGER1, OUTPUT);
-    // pinMode(TRIGGER2, OUTPUT);
-    // pinMode(TRIGGER3, OUTPUT);
-    // pinMode(TRIGGER4, OUTPUT);
-    // pinMode(ECHO1, INPUT);
-    // pinMode(ECHO2, INPUT);
-    // pinMode(ECHO3, INPUT);
-    // pinMode(ECHO4, INPUT);
-    //
-    // digitalWrite(TRIGGER1, LOW);
-    // digitalWrite(TRIGGER2, LOW);
-    // digitalWrite(TRIGGER3, LOW);
-    // digitalWrite(TRIGGER4, LOW);
+    Serial.begin(57600);
+    pinMode(TRIGGER1, OUTPUT);
+    pinMode(ECHO1, INPUT);
+
+    digitalWrite(TRIGGER1, LOW);
 
     Wire.begin();
     delay(50);
@@ -129,63 +126,85 @@ void setup() {
     setCalReg();
     writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
     writeBNO(0, OPR_MODE_REG, NDOF_OPR);
+    writeBNO(0, 0x3b, 0b10000000);
 
     nh.initNode();
     nh.advertise(pub_linacc);
     nh.advertise(pub_angvec);
     nh.advertise(pub_quat);
-    // nh.advertise(pub_dist);
+    nh.advertise(pub_dist);
+
+}
+
+float measureDist( void ){
+  unsigned long startTime = micros();
+  unsigned long startTime1 = micros();
+  unsigned long passedTime;
+  unsigned long sensorTime1 = 0;
+  double distance1;
+  double distance1old = 0;
+  bool echoDet1;
+  bool measurementStatus = true;
+  int temperature = bno.readBNO(0, 0x34);
+  digitalWrite(TRIGGER1, HIGH);
+  delay(10);
+  digitalWrite(TRIGGER1, LOW);
+  while( measurementStatus == true ){
+
+    passedTime = micros() - startTime;
+    echoDet1 = digitalRead(ECHO1);
+
+    if ( (passedTime > 25000) || (passedTime < 0) ) {
+      measurementStatus = false;
+      return distance1old;
+      loop();
+    }
+    else {
+      if ( (digitalRead(ECHO1) == 1) && (measurementStatus == true) ) { sensorTime1 = micros() - startTime1; }
+      if ( (digitalRead(ECHO1) != echoDet1) && (echoDet1 == 1) && (measurementStatus == true) ) {
+        measurementStatus = false;
+        distance1 = (float)sensorTime1 / 2000000 * (331.5 + 0.6 * temperature);   // (331,5+0,6*temperature)*sensorTime/2000000
+        if (distance1 > 2.0){
+          distance1 = distance1old;
+          distance1old = distance1;
+        }
+        return distance1;
+        loop();
+      }
+    }
+    if ( (digitalRead(ECHO1) != echoDet1) && (echoDet1 == 0) && (measurementStatus == true) ) { startTime1 = micros(); }
+  }
+}
+
+void measureImu( void ){
+  imu::Quaternion quat = bno.getQuat();
+  quat_msg.w = (quat.w()/ONEQUATERNION);
+  quat_msg.x = (quat.x()/ONEQUATERNION);
+  quat_msg.y = (quat.y()/ONEQUATERNION);
+  quat_msg.z = (quat.z()/ONEQUATERNION);
+  pub_quat.publish( &quat_msg );
+  nh.spinOnce();
+  imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+  linacc_msg.x = vec_linacc.x();
+  linacc_msg.y = vec_linacc.y();
+  linacc_msg.z = vec_linacc.z();
+  pub_linacc.publish( &linacc_msg );
+  nh.spinOnce();
+  imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+  angvec_msg.x = vec_acc.x();
+  angvec_msg.y = vec_acc.y();
+  angvec_msg.z = vec_acc.z();
+  pub_angvec.publish( &angvec_msg );
+  nh.spinOnce();
+  delay(1);
+  measureDist();
 }
 
 void loop() {
-  // unsigned long passedTime;
-  // unsigned long startTime = micros();
-  // unsigned long measStartTime[4] = {0, 0, 0, 0};
-  // unsigned long sensorTime[4] = {0, 0, 0, 0};
-  // float distance[4] = {0, 0, 0, 0};
-  // bool echoDet[4] = {0, 0, 0, 0};
-
-  while(1){
-    // passedTime = micros() - startTime;
-    // for (int i = 0; i<4; i++){
-    //   echoDet[i] = digitalRead( (6 + i*2) );
-    // }
-    // // trigger hcsr04 sequentially
-    // for (int i = 0; i<4; i++){
-    //   digitalWrite( (7 + i*2) , HIGH);
-    //   while ( (passedTime < 20000) || (passedTime < 0) ){
-    //     if ( (digitalRead( (6 + 2*i) ) != echoDet[i]) && (echoDet[i] == 1) ) {
-    //       sensorTime[i] = micros() - measStartTime[i];
-    //       distance[i] = sensorTime[i] * 0.0001724;
-    //       if (distance[i] > 2.0){
-    //         distance[i] = 2.0;
-    //       }
-    //     }
-    //   }
-    // }
-    // dist_msg.data = distance;
-    // pub_dist.publish( &dist_msg );
-
-    imu::Quaternion quat = bno.getQuat();
-    quat_msg.w = quat.w();
-    quat_msg.x = quat.x();
-    quat_msg.y = quat.y();
-    quat_msg.z = quat.z();
-    pub_quat.publish( &quat_msg );
-    nh.spinOnce();
-    imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-    linacc_msg.x = vec_linacc.x();
-    linacc_msg.y = vec_linacc.y();
-    linacc_msg.z = vec_linacc.z();
-    pub_linacc.publish( &linacc_msg );
-    nh.spinOnce();
-    imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-    angvec_msg.x = vec_acc.x();
-    angvec_msg.y = vec_acc.y();
-    angvec_msg.z = vec_acc.z();
-    pub_angvec.publish( &angvec_msg );
-    nh.spinOnce();
-  }
+  dist_msg.data = measureDist();
+  pub_dist.publish( &dist_msg );
+  nh.spinOnce();
+  measureImu();
 }
 
 
