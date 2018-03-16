@@ -13,17 +13,21 @@ Attention:
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Vector3.h>
 #include <std_msgs/Float32.h>
+#include <TimerOne.h>
 
 #define ONEQUATERNION 16384 // = 2^14 LSB
+#define T_SAMPLE 15000
 
-#define TRIGGER1 7
-// #define TRIGGER2 9
-// #define TRIGGER3 11
-// #define TRIGGER4 13
-#define ECHO1 6
-// #define ECHO2 8
-// #define ECHO3 10
-// #define ECHO4 12
+#define ECHO1 13
+#define TRIGGER1 12
+#define ECHO2 11
+#define TRIGGER2 10
+#define ECHO3 9
+#define TRIGGER3 8
+#define ECHO4 7
+#define TRIGGER4 6
+// #define BNO_IR 5
+// #define BNO_IR_OUT 4
 
 void measureImu( void );
 float measureDist( void );
@@ -87,92 +91,45 @@ void setCalReg( void ){
   }
 }
 
-void setup() {
-
-    Serial.begin(57600);
-    pinMode(TRIGGER1, OUTPUT);
-    pinMode(ECHO1, INPUT);
-
-    digitalWrite(TRIGGER1, LOW);
-
-    Wire.begin();
-    delay(50);
-
-    if((byte)(bno.readBNO(0, 0x00)) != ID)
-    {
-      delay(500);
-      while((byte)(bno.readBNO(0, 0x00)) != ID){
-        break;
-      }
-    }
-
-    writeBNO(0, OPR_MODE_REG, CONFIG_OPR );
-
-    writeBNO(0, SYS_TRIGGER_REG, RESET); // reset bno
-    delay(100);
-    while( ID != bno.readBNO(0, STATUS_REG) ){
-      delay(20);
-    }
-    delay(100);
-
-    writeBNO(0, PWR_MODE_REG, NORMAL_PWR); // normal power mode enabled
-    delay(10);
-
-    // set interrupts:
-    writeBNO(1, INT_EN_ADDR, (byte)(0b00100000));
-    writeBNO(1, INT_MSK_ADDR, (byte)(0b00100000));
-    writeBNO(1, ACC_INT_SETTINGS_ADDR, (byte)(0b11100000));
-
-    setCalReg();
-    writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
-    writeBNO(0, OPR_MODE_REG, NDOF_OPR);
-    writeBNO(0, 0x3b, 0b10000000);
-
-    nh.initNode();
-    nh.advertise(pub_linacc);
-    nh.advertise(pub_angvec);
-    nh.advertise(pub_quat);
-    nh.advertise(pub_dist);
-
+void waitingState( unsigned long startTime, unsigned long targetTime ){
+  while ( (micros() - startTime) < targetTime ) {
+    delay(5);
+  }
 }
 
-float measureDist( void ){
+float measureDist( int port ){
+  int echoPort = port;
+  int triggerPort = port - 1;
   unsigned long startTime = micros();
   unsigned long startTime1 = micros();
   unsigned long passedTime;
   unsigned long sensorTime1 = 0;
   double distance1;
-  double distance1old = 0;
   bool echoDet1;
-  bool measurementStatus = true;
   int temperature = bno.readBNO(0, 0x34);
-  digitalWrite(TRIGGER1, HIGH);
+  digitalWrite(triggerPort, HIGH);
   delay(10);
-  digitalWrite(TRIGGER1, LOW);
-  while( measurementStatus == true ){
+  digitalWrite(triggerPort, LOW);
+  while( 1 ){
 
     passedTime = micros() - startTime;
-    echoDet1 = digitalRead(ECHO1);
+    echoDet1 = digitalRead(echoPort);
 
-    if ( (passedTime > 25000) || (passedTime < 0) ) {
-      measurementStatus = false;
-      return distance1old;
-      loop();
+    if ( (passedTime > T_SAMPLE ) || (passedTime < 0) ) {
+      return 0;
     }
     else {
-      if ( (digitalRead(ECHO1) == 1) && (measurementStatus == true) ) { sensorTime1 = micros() - startTime1; }
-      if ( (digitalRead(ECHO1) != echoDet1) && (echoDet1 == 1) && (measurementStatus == true) ) {
-        measurementStatus = false;
-        distance1 = (float)sensorTime1 / 2000000 * (331.5 + 0.6 * temperature);   // (331,5+0,6*temperature)*sensorTime/2000000
-        if (distance1 > 2.0){
-          distance1 = distance1old;
-          distance1old = distance1;
-        }
-        return distance1;
-        loop();
-      }
+    if ( digitalRead(echoPort) == 1 ) { sensorTime1 = micros() - startTime1; }
+    if ( (digitalRead(echoPort) != echoDet1) && (echoDet1 == 1) ) {
+      distance1 = (float)sensorTime1 / 2000000 * (331.5 + 0.6 * temperature);   // (331,5+0,6*temperature)*sensorTime/2000000
+      // if (distance1 > 1.5){
+      //   distance1 = 1.5;
+      // }
+      waitingState(startTime, T_SAMPLE);
+      return distance1;
     }
-    if ( (digitalRead(ECHO1) != echoDet1) && (echoDet1 == 0) && (measurementStatus == true) ) { startTime1 = micros(); }
+    }
+    if ( (digitalRead(echoPort) != echoDet1) && (echoDet1 == 0) ) { startTime1 = micros(); }
   }
 }
 
@@ -183,83 +140,109 @@ void measureImu( void ){
   quat_msg.y = (quat.y()/ONEQUATERNION);
   quat_msg.z = (quat.z()/ONEQUATERNION);
   pub_quat.publish( &quat_msg );
-  nh.spinOnce();
   imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
   linacc_msg.x = vec_linacc.x();
   linacc_msg.y = vec_linacc.y();
   linacc_msg.z = vec_linacc.z();
   pub_linacc.publish( &linacc_msg );
-  nh.spinOnce();
   imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
   angvec_msg.x = vec_acc.x();
   angvec_msg.y = vec_acc.y();
   angvec_msg.z = vec_acc.z();
   pub_angvec.publish( &angvec_msg );
+}
+
+void triggerMeas( void ){
+  dist_msg.data = measureDist(13);
+  pub_dist.publish( &dist_msg );
+  measureImu();
   nh.spinOnce();
-  delay(1);
-  measureDist();
+  dist_msg.data = measureDist(11);
+  pub_dist.publish( &dist_msg );
+  measureImu();
+  nh.spinOnce();
+  dist_msg.data = measureDist(9);
+  pub_dist.publish( &dist_msg );
+  measureImu();
+  nh.spinOnce();
+  dist_msg.data = measureDist(7);
+  pub_dist.publish( &dist_msg );
+  measureImu();
+  nh.spinOnce();
+}
+
+// void bnoInterrupt ( void ) {
+//   // ISR
+//   delay(500);
+// }
+
+void setup() {
+
+  pinMode(TRIGGER1, OUTPUT);
+  pinMode(TRIGGER2, OUTPUT);
+  pinMode(TRIGGER3, OUTPUT);
+  pinMode(TRIGGER4, OUTPUT);
+  // pinMode(BNO_IR_OUT, OUTPUT);
+  pinMode(ECHO1, INPUT);
+  pinMode(ECHO2, INPUT);
+  pinMode(ECHO3, INPUT);
+  pinMode(ECHO4, INPUT);
+  // pinMode(BNO_IR, INPUT);
+
+  digitalWrite(TRIGGER1, LOW);
+  digitalWrite(TRIGGER2, LOW);
+  digitalWrite(TRIGGER3, LOW);
+  digitalWrite(TRIGGER4, LOW);
+  // digitalWrite(BNO_IR_OUT, LOW);
+
+  // Serial.begin(57600);
+  Wire.begin();
+  delay(50);
+
+  if((byte)(bno.readBNO(0, 0x00)) != ID)
+  {
+    delay(500);
+    while((byte)(bno.readBNO(0, 0x00)) != ID){
+      break;
+    }
+  }
+
+  writeBNO(0, OPR_MODE_REG, CONFIG_OPR );
+
+  writeBNO(0, SYS_TRIGGER_REG, RESET); // reset bno
+  delay(100);
+  while( ID != bno.readBNO(0, STATUS_REG) ){
+    delay(20);
+  }
+  delay(100);
+
+  writeBNO(0, PWR_MODE_REG, NORMAL_PWR); // normal power mode enabled
+  delay(10);
+
+  // set interrupts:
+  writeBNO(1, INT_EN_ADDR, (byte)(0b00100000));
+  writeBNO(1, INT_MSK_ADDR, (byte)(0b00100000));
+  writeBNO(1, ACC_INT_SETTINGS_ADDR, (byte)(0b11100000));
+  // writeBNO(1, ACC_HG_DURATION_ADDR, (byte)(0b00000000));
+  // writeBNO(1, ACC_HG_THRES_ADDR, (byte)(0xff));
+
+  setCalReg();
+  writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
+  writeBNO(0, OPR_MODE_REG, NDOF_OPR);
+  writeBNO(0, 0x3b, 0b00010000); // units (?)
+
+  // nh.getHardware()->setBaud(115200);
+  nh.initNode();
+  nh.advertise(pub_linacc);
+  nh.advertise(pub_angvec);
+  nh.advertise(pub_quat);
+  nh.advertise(pub_dist);
+
+  // attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, CHANGE);
 }
 
 void loop() {
-  dist_msg.data = measureDist();
-  pub_dist.publish( &dist_msg );
-  nh.spinOnce();
-  measureImu();
+  while(1){
+    triggerMeas();
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
