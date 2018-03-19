@@ -147,7 +147,7 @@ void setup() {
 
 void loop() {
   while(1){
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 50; i++) {
       imu::Quaternion quat = bno.getQuat();
       quat_msg.w = (quat.w()/ONEQUATERNION);
       quat_msg.x = (quat.x()/ONEQUATERNION);
@@ -165,7 +165,6 @@ void loop() {
       angvec_msg.z = vec_acc.z();
       pub_angvec.publish( &angvec_msg );
       nh.spinOnce();
-      delay(150);
     }
     // Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
     // Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
