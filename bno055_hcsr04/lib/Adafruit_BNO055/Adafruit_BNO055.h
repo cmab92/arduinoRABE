@@ -23,6 +23,7 @@
 #define RESET                        0x20 // on SYS_TRIGGER_REG
 #define NORMAL_PWR                   0x00 // on PWR_MODE_REG
 #define EXTAL                        0x80 // on SYS_TRIGGER_REG
+#define UNIT_SEL_ADDR                0x3b
 
 // System registers
 #define STATUS_REG                   0x00

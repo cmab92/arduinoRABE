@@ -16,7 +16,7 @@ Attention:
 #include <TimerOne.h>
 
 #define ONEQUATERNION 16384 // = 2^14 LSB
-#define T_SAMPLE 15000
+#define T_SAMPLE 20000
 
 #define ECHO1 13
 #define TRIGGER1 12
@@ -26,11 +26,12 @@ Attention:
 #define TRIGGER3 8
 #define ECHO4 7
 #define TRIGGER4 6
-// #define BNO_IR 5
-// #define BNO_IR_OUT 4
+#define BNO_IR 3
+#define BNO_IR_OUT 2
 
 void measureImu( void );
 float measureDist( void );
+volatile byte state = LOW;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -52,8 +53,8 @@ ros::Publisher pub_dist("dist_msg", &dist_msg);
 
 void writeBNO( bool page, byte reg, byte value ){
   // write safely
-  while ( !bno.writeBNO( 0, reg, value ) ){
-    bno.writeBNO( 0, reg, value );
+  while ( !bno.writeBNO( page, reg, value ) ){
+    bno.writeBNO( page, reg, value );
   }
 }
 
@@ -171,10 +172,11 @@ void triggerMeas( void ){
   nh.spinOnce();
 }
 
-// void bnoInterrupt ( void ) {
-//   // ISR
-//   delay(500);
-// }
+void bnoInterrupt ( void ) {
+  // ISR ...
+  state = !state;
+  digitalWrite(BNO_IR_OUT, state);
+}
 
 void setup() {
 
@@ -182,20 +184,20 @@ void setup() {
   pinMode(TRIGGER2, OUTPUT);
   pinMode(TRIGGER3, OUTPUT);
   pinMode(TRIGGER4, OUTPUT);
-  // pinMode(BNO_IR_OUT, OUTPUT);
+  pinMode(BNO_IR_OUT, OUTPUT);
   pinMode(ECHO1, INPUT);
   pinMode(ECHO2, INPUT);
   pinMode(ECHO3, INPUT);
   pinMode(ECHO4, INPUT);
-  // pinMode(BNO_IR, INPUT);
+  pinMode(BNO_IR, INPUT);
 
   digitalWrite(TRIGGER1, LOW);
   digitalWrite(TRIGGER2, LOW);
   digitalWrite(TRIGGER3, LOW);
   digitalWrite(TRIGGER4, LOW);
-  // digitalWrite(BNO_IR_OUT, LOW);
+  digitalWrite(BNO_IR_OUT, LOW);
 
-  // Serial.begin(57600);
+  Serial.begin(57600);
   Wire.begin();
   delay(50);
 
@@ -220,16 +222,21 @@ void setup() {
   delay(10);
 
   // set interrupts:
-  writeBNO(1, INT_EN_ADDR, (byte)(0b00100000));
-  writeBNO(1, INT_MSK_ADDR, (byte)(0b00100000));
-  writeBNO(1, ACC_INT_SETTINGS_ADDR, (byte)(0b11100000));
-  // writeBNO(1, ACC_HG_DURATION_ADDR, (byte)(0b00000000));
-  // writeBNO(1, ACC_HG_THRES_ADDR, (byte)(0xff));
+  writeBNO(1, INT_EN_ADDR, 0x20);
+  writeBNO(1, INT_MSK_ADDR, 0x20);
+  writeBNO(1, ACC_INT_SETTINGS_ADDR, 0xe0);
+  writeBNO(1, ACC_HG_DURATION_ADDR, 0x00);
+  writeBNO(1, ACC_HG_THRES_ADDR, 0xf0);
+  Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
+  Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
+  Serial.println(bno.readBNO(1, ACC_INT_SETTINGS_ADDR),HEX);
+  Serial.println(bno.readBNO(1, ACC_HG_DURATION_ADDR),HEX);
+  Serial.println(bno.readBNO(1, ACC_HG_THRES_ADDR),HEX);
 
   setCalReg();
   writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
   writeBNO(0, OPR_MODE_REG, NDOF_OPR);
-  writeBNO(0, 0x3b, 0b00010000); // units (?)
+  writeBNO(0, UNIT_SEL_ADDR, 0b10000000); // unit selection
 
   // nh.getHardware()->setBaud(115200);
   nh.initNode();
@@ -238,11 +245,12 @@ void setup() {
   nh.advertise(pub_quat);
   nh.advertise(pub_dist);
 
-  // attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, HIGH);
 }
 
 void loop() {
   while(1){
     triggerMeas();
+    writeBNO(0, 0x3f, 0xc0); // reset interrupt pin, set extal
   }
 }

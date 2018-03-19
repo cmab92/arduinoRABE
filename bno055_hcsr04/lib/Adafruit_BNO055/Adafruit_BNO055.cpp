@@ -20,7 +20,7 @@ Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address)
 // write to bno055 reg
 bool Adafruit_BNO055::writeBNO( bool page, byte reg, byte value )
 {
-  if ( page == 0 ){
+  if ( page == 0 ) {
     Wire.beginTransmission(_address);
     #if ARDUINO >= 100
       Wire.write((uint8_t)reg);
@@ -32,29 +32,32 @@ bool Adafruit_BNO055::writeBNO( bool page, byte reg, byte value )
     Wire.endTransmission();
   }
   else { // page 0 as default
-    Wire.beginTransmission(_address);
-    #if ARDUINO >= 100
-      // switch to page 1
-      Wire.write((uint8_t)PAGE_ID_REG);
-      Wire.write((uint8_t)1);
-      // write data
-      Wire.write((uint8_t)reg);
-      Wire.write((uint8_t)value);
-      // switch to page 0
-      Wire.write((uint8_t)PAGE_ID_REG);
-      Wire.write((uint8_t)0);
-    #else
-      // switch to page 1
-      Wire.send((uint8_t)PAGE_ID_REG);
-      Wire.send((uint8_t)1);
-      // write data
-      Wire.send((uint8_t)reg);
-      Wire.send((uint8_t)value);
-      // switch to page 0
-      Wire.send((uint8_t)PAGE_ID_REG);
-      Wire.send((uint8_t)0);
-    #endif
-    Wire.endTransmission();
+    write8(PAGE_ID_REG, 1);
+    write8(reg, value);
+    write8(PAGE_ID_REG, 0);
+    // Wire.beginTransmission(_address);
+    // #if ARDUINO >= 100
+    //   // switch to page 1
+    //   Wire.write((uint8_t)PAGE_ID_REG);
+    //   Wire.write((uint8_t)1);
+    //   // write data
+    //   Wire.write((uint8_t)reg);
+    //   Wire.write((uint8_t)value);
+    //   // switch to page 0
+    //   Wire.write((uint8_t)PAGE_ID_REG);
+    //   Wire.write((uint8_t)0);
+    // #else
+    //   // switch to page 1
+    //   Wire.send((uint8_t)PAGE_ID_REG);
+    //   Wire.send((uint8_t)1);
+    //   // write data
+    //   Wire.send((uint8_t)reg);
+    //   Wire.send((uint8_t)value);
+    //   // switch to page 0
+    //   Wire.send((uint8_t)PAGE_ID_REG);
+    //   Wire.send((uint8_t)0);
+    // #endif
+    // Wire.endTransmission();
   }
   return true;
 }

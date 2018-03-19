@@ -15,21 +15,12 @@ Attention:
 #include <TimerOne.h>
 
 #define ONEQUATERNION 16384 // = 2^14 LSB
-#define T_SAMPLE 20000
 
-#define ECHO1 13
-#define TRIGGER1 12
-#define ECHO2 11
-#define TRIGGER2 10
-#define ECHO3 9
-#define TRIGGER3 8
-#define ECHO4 7
-#define TRIGGER4 6
-#define BNO_IR 8
-#define BNO_IR_OUT 7
+#define BNO_IR 2
+#define BNO_IR_OUT 3
 
 void measureImu( void );
-volatile byte state = LOW;
+bool state = LOW;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -37,17 +28,15 @@ ros::NodeHandle nh;
 geometry_msgs::Vector3 linacc_msg;
 geometry_msgs::Vector3 angvec_msg;
 geometry_msgs::Quaternion quat_msg;
-std_msgs::Float32 dist_msg;
 ros::Publisher pub_linacc("linacc_msg", &linacc_msg);
 ros::Publisher pub_angvec("angvec_msg", &angvec_msg);
 ros::Publisher pub_quat("quat_msg", &quat_msg);
-ros::Publisher pub_dist("dist_msg", &dist_msg);
 
-void getCalReg( void ){
-  for ( int i = 0x55; i< 0x6b; i++ ){
-    // // Serial.println(bno.readBNO(0, i ) );
-  }
-}
+// void getCalReg( void ){
+//   for ( int i = 0x55; i< 0x6b; i++ ){
+//     Serial.println(bno.readBNO(0, i ) );
+//   }
+// }
 
 void writeBNO( bool page, byte reg, byte value ){
   // write safely
@@ -90,62 +79,22 @@ void setCalReg( void ){
   }
 }
 
-void waitingState( unsigned long startTime, unsigned long targetTime ){
-  while ( (micros() - startTime) < targetTime ) {
-    delay(5);
-  }
-}
-
-void measureImu( void ){
-  imu::Quaternion quat = bno.getQuat();
-  quat_msg.w = (quat.w()/ONEQUATERNION);
-  quat_msg.x = (quat.x()/ONEQUATERNION);
-  quat_msg.y = (quat.y()/ONEQUATERNION);
-  quat_msg.z = (quat.z()/ONEQUATERNION);
-  pub_quat.publish( &quat_msg );
-  imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-  linacc_msg.x = vec_linacc.x();
-  linacc_msg.y = vec_linacc.y();
-  linacc_msg.z = vec_linacc.z();
-  pub_linacc.publish( &linacc_msg );
-  imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-  angvec_msg.x = vec_acc.x();
-  angvec_msg.y = vec_acc.y();
-  angvec_msg.z = vec_acc.z();
-  pub_angvec.publish( &angvec_msg );
-}
-
-void triggerMeas( void ){
-  measureImu();
-  nh.spinOnce();
-}
-
 void bnoInterrupt ( void ) {
   // ISR ...
   state = !state;
+  Serial.println("switch");
   digitalWrite(BNO_IR_OUT, state);
 }
 
 void setup() {
 
-  pinMode(TRIGGER1, OUTPUT);
-  pinMode(TRIGGER2, OUTPUT);
-  pinMode(TRIGGER3, OUTPUT);
-  pinMode(TRIGGER4, OUTPUT);
   pinMode(BNO_IR_OUT, OUTPUT);
-  pinMode(ECHO1, INPUT);
-  pinMode(ECHO2, INPUT);
-  pinMode(ECHO3, INPUT);
-  pinMode(ECHO4, INPUT);
   pinMode(BNO_IR, INPUT);
 
-  digitalWrite(TRIGGER1, LOW);
-  digitalWrite(TRIGGER2, LOW);
-  digitalWrite(TRIGGER3, LOW);
-  digitalWrite(TRIGGER4, LOW);
   digitalWrite(BNO_IR_OUT, LOW);
 
   Serial.begin(57600);
+  Serial.println("setup");
   Wire.begin();
   delay(50);
 
@@ -174,12 +123,13 @@ void setup() {
   writeBNO(1, INT_MSK_ADDR, 0x20);
   writeBNO(1, ACC_INT_SETTINGS_ADDR, 0xe0);
   writeBNO(1, ACC_HG_DURATION_ADDR, 0x00);
-  writeBNO(1, ACC_HG_THRES_ADDR, 0xf0);
-  Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
-  Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
-  Serial.println(bno.readBNO(1, ACC_INT_SETTINGS_ADDR),HEX);
-  Serial.println(bno.readBNO(1, ACC_HG_DURATION_ADDR),HEX);
-  Serial.println(bno.readBNO(1, ACC_HG_THRES_ADDR),HEX);
+  writeBNO(1, ACC_HG_THRES_ADDR, 0xa0);
+  // Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
+  // Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
+  // Serial.println(bno.readBNO(1, ACC_INT_SETTINGS_ADDR),HEX);
+  // Serial.println(bno.readBNO(1, ACC_HG_DURATION_ADDR),HEX);
+  // Serial.println(bno.readBNO(1, ACC_HG_THRES_ADDR),HEX);
+  writeBNO(0, 0x3f, 0xc0); // reset interrupt pin, set extal
 
   setCalReg();
   writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
@@ -192,13 +142,36 @@ void setup() {
   nh.advertise(pub_angvec);
   nh.advertise(pub_quat);
 
-  attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, HIGH);
+  attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, 1);
 }
 
 void loop() {
-  getCalReg();
   while(1){
-    triggerMeas();
+    for (int i = 0; i < 10; i++) {
+      imu::Quaternion quat = bno.getQuat();
+      quat_msg.w = (quat.w()/ONEQUATERNION);
+      quat_msg.x = (quat.x()/ONEQUATERNION);
+      quat_msg.y = (quat.y()/ONEQUATERNION);
+      quat_msg.z = (quat.z()/ONEQUATERNION);
+      pub_quat.publish( &quat_msg );
+      imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+      linacc_msg.x = vec_linacc.x();
+      linacc_msg.y = vec_linacc.y();
+      linacc_msg.z = vec_linacc.z();
+      pub_linacc.publish( &linacc_msg );
+      imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+      angvec_msg.x = vec_acc.x();
+      angvec_msg.y = vec_acc.y();
+      angvec_msg.z = vec_acc.z();
+      pub_angvec.publish( &angvec_msg );
+      nh.spinOnce();
+      delay(150);
+    }
+    // Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, ACC_INT_SETTINGS_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, ACC_HG_DURATION_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, ACC_HG_THRES_ADDR),HEX);
     writeBNO(0, 0x3f, 0xc0); // reset interrupt pin, set extal
   }
 }
