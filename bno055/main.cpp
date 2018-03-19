@@ -2,7 +2,8 @@
 Author: cb
 Date: March 18
 Purpose:
-- publish IMU-data from BNO055 ... only handling bno!!!
+- publish IMU-data from BNO055
+- handle hcsr04
 Attention:
 */
 #include <Wire.h>
@@ -25,10 +26,11 @@ Attention:
 #define TRIGGER3 8
 #define ECHO4 7
 #define TRIGGER4 6
-#define BNO_IR 8
-#define BNO_IR_OUT 7
+#define BNO_IR 3
+#define BNO_IR_OUT 2
 
 void measureImu( void );
+float measureDist( void );
 volatile byte state = LOW;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
@@ -43,11 +45,11 @@ ros::Publisher pub_angvec("angvec_msg", &angvec_msg);
 ros::Publisher pub_quat("quat_msg", &quat_msg);
 ros::Publisher pub_dist("dist_msg", &dist_msg);
 
-void getCalReg( void ){
-  for ( int i = 0x55; i< 0x6b; i++ ){
-    // // Serial.println(bno.readBNO(0, i ) );
-  }
-}
+// void getCalReg( void ){
+//   for ( int i = 0x55; i< 0x6b; i++ ){
+//     // // Serial.println(bno.readBNO(0, i ) );
+//   }
+// }
 
 void writeBNO( bool page, byte reg, byte value ){
   // write safely
@@ -96,6 +98,42 @@ void waitingState( unsigned long startTime, unsigned long targetTime ){
   }
 }
 
+float measureDist( int port ){
+  int echoPort = port;
+  int triggerPort = port - 1;
+  unsigned long startTime = micros();
+  unsigned long startTime1 = micros();
+  unsigned long passedTime;
+  unsigned long sensorTime1 = 0;
+  double distance1;
+  bool echoDet1;
+  int temperature = bno.readBNO(0, 0x34);
+  digitalWrite(triggerPort, HIGH);
+  delay(10);
+  digitalWrite(triggerPort, LOW);
+  while( 1 ){
+
+    passedTime = micros() - startTime;
+    echoDet1 = digitalRead(echoPort);
+
+    if ( (passedTime > T_SAMPLE ) || (passedTime < 0) ) {
+      return 0;
+    }
+    else {
+    if ( digitalRead(echoPort) == 1 ) { sensorTime1 = micros() - startTime1; }
+    if ( (digitalRead(echoPort) != echoDet1) && (echoDet1 == 1) ) {
+      distance1 = (float)sensorTime1 / 2000000 * (331.5 + 0.6 * temperature);   // (331,5+0,6*temperature)*sensorTime/2000000
+      // if (distance1 > 1.5){
+      //   distance1 = 1.5;
+      // }
+      waitingState(startTime, T_SAMPLE);
+      return distance1;
+    }
+    }
+    if ( (digitalRead(echoPort) != echoDet1) && (echoDet1 == 0) ) { startTime1 = micros(); }
+  }
+}
+
 void measureImu( void ){
   imu::Quaternion quat = bno.getQuat();
   quat_msg.w = (quat.w()/ONEQUATERNION);
@@ -116,6 +154,20 @@ void measureImu( void ){
 }
 
 void triggerMeas( void ){
+  dist_msg.data = measureDist(13);
+  pub_dist.publish( &dist_msg );
+  measureImu();
+  nh.spinOnce();
+  dist_msg.data = measureDist(11);
+  pub_dist.publish( &dist_msg );
+  measureImu();
+  nh.spinOnce();
+  dist_msg.data = measureDist(9);
+  pub_dist.publish( &dist_msg );
+  measureImu();
+  nh.spinOnce();
+  dist_msg.data = measureDist(7);
+  pub_dist.publish( &dist_msg );
   measureImu();
   nh.spinOnce();
 }
@@ -191,12 +243,12 @@ void setup() {
   nh.advertise(pub_linacc);
   nh.advertise(pub_angvec);
   nh.advertise(pub_quat);
+  nh.advertise(pub_dist);
 
   attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, HIGH);
 }
 
 void loop() {
-  getCalReg();
   while(1){
     triggerMeas();
     writeBNO(0, 0x3f, 0xc0); // reset interrupt pin, set extal
