@@ -82,7 +82,7 @@ void setCalReg( void ){
 void bnoInterrupt ( void ) {
   // ISR ...
   state = !state;
-  Serial.println("switch");
+  // Serial.println("switch");
   digitalWrite(BNO_IR_OUT, state);
 }
 
@@ -93,8 +93,8 @@ void setup() {
 
   digitalWrite(BNO_IR_OUT, LOW);
 
-  Serial.begin(57600);
-  Serial.println("setup");
+  // Serial.begin(57600);
+  // Serial.println("setup");
   Wire.begin();
   delay(50);
 
@@ -123,7 +123,7 @@ void setup() {
   writeBNO(1, INT_MSK_ADDR, 0x20);
   writeBNO(1, ACC_INT_SETTINGS_ADDR, 0xe0);
   writeBNO(1, ACC_HG_DURATION_ADDR, 0x00);
-  writeBNO(1, ACC_HG_THRES_ADDR, 0xa0);
+  writeBNO(1, ACC_HG_THRES_ADDR, 0x90);
   // Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
   // Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
   // Serial.println(bno.readBNO(1, ACC_INT_SETTINGS_ADDR),HEX);
@@ -142,7 +142,7 @@ void setup() {
   nh.advertise(pub_angvec);
   nh.advertise(pub_quat);
 
-  attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, 1);
+  attachInterrupt(digitalPinToInterrupt(BNO_IR), bnoInterrupt, RISING);
 }
 
 void loop() {
