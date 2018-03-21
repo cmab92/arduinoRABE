@@ -1,4 +1,8 @@
 
+/*
+cb, 21.03.18
+todo: equidistant measurents
+*/
 #include <Wire.h>
 #include <ros.h>
 #include <std_msgs/Float32.h>
@@ -8,6 +12,7 @@
 #define IR1 A1
 #define IR2 A2
 #define DELAY_MS 2
+#define DIST_THRES 1.5 // measurent larger than DIST_THRES is set to 0
 
 ros::NodeHandle nh;
 std_msgs::Float32 dist_IR0_msg;
@@ -21,6 +26,10 @@ ros::Publisher pub_dist_IR2("dist_IR2_msg", &dist_IR2_msg);
 float calcDist( float analogVal){ // curve fitting to a*x^b+c
   float dist;
   dist = 2.475*pow(analogVal,-0.343)-0.256;
+  if ( (dist>0) && (dist<DIST_THRES) ){}
+  else {
+    dist = 0;
+  }
   return dist;
 }
 
