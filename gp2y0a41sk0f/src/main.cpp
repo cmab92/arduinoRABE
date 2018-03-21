@@ -26,7 +26,7 @@ ros::Publisher pub_dist_IR2("dist_IR2_msg", &dist_IR2_msg);
 float calcDist( float analogVal){ // curve fitting to a*x^b+c
   float dist;
   dist = 2.475*pow(analogVal,-0.343)-0.256;
-  if ( (dist>0) && (dist<DIST_THRES) ){}
+  if ( (dist>0) && (dist<DIST_THRES) ){} // added after testlauf01
   else {
     dist = 0;
   }
