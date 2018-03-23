@@ -11,8 +11,8 @@ todo: equidistant measurents
 #define IR0 A0
 #define IR1 A1
 #define IR2 A2
-#define DELAY_MS 2
-#define DIST_THRES 1.5 // measurent larger than DIST_THRES is set to 0
+#define DELAY_MS 0
+#define DIST_THRES 1 // measurent larger than DIST_THRES is set to 0
 
 ros::NodeHandle nh;
 std_msgs::Float32 dist_IR0_msg;
@@ -26,18 +26,17 @@ ros::Publisher pub_dist_IR2("dist_IR2_msg", &dist_IR2_msg);
 float calcDist( float analogVal){ // curve fitting to a*x^b+c
   float dist;
   dist = 2.475*pow(analogVal,-0.343)-0.256;
-  if ( (dist>0) && (dist<DIST_THRES) ){} // added after testlauf01
+  if ( (dist>0) && (dist<DIST_THRES) ){
+    dist = dist;
+  } // added after testlauf01
   else {
-    dist = 0;
+    dist = 2;
   }
   return dist;
 }
 
 void setup() {
   // Serial.begin(57600);
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
   nh.initNode();
   nh.advertise(pub_dist_IR0);
   nh.advertise(pub_dist_IR1);
