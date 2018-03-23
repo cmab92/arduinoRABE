@@ -1,13 +1,10 @@
 
 /*
 cb, 21.03.18
-check sampling time
 */
 #include <Wire.h>
 #include <ros.h>
 #include <std_msgs/Float32.h>
-#include <std_msgs/Time.h>
-#include <ros/time.h>
 #include <TimerOne.h>
 
 #define IR0 A0
@@ -25,8 +22,6 @@ std_msgs::Float32 dist_IR1_msg;
 ros::Publisher pub_dist_IR1("dist_IR1_msg", &dist_IR1_msg);
 std_msgs::Float32 dist_IR2_msg;
 ros::Publisher pub_dist_IR2("dist_IR2_msg", &dist_IR2_msg);
-std_msgs::Float32 time_msg;
-ros::Publisher pub_time("time_msg", &time_msg);
 
 
 // float calcDist( float analogVal){ // curve fitting to a*x^b+c
@@ -42,27 +37,21 @@ ros::Publisher pub_time("time_msg", &time_msg);
 // }
 
 void measure( void ) {
-  time_msg.data = micros() - timeStamp;
-  timeStamp = micros();
   dist_IR0_msg.data = analogRead( IR0 );
   dist_IR1_msg.data = analogRead( IR1 );
   dist_IR2_msg.data = analogRead( IR2 );
   pub_dist_IR0.publish( &dist_IR0_msg );
   pub_dist_IR1.publish( &dist_IR1_msg );
   pub_dist_IR2.publish( &dist_IR2_msg );
-  pub_time.publish( &time_msg );
   nh.spinOnce();
 }
 
 void setup() {
   // Serial.begin(57600);
-  timeStamp = micros();
-//  time_msg.data = micros();
   nh.initNode();
   nh.advertise(pub_dist_IR0);
   nh.advertise(pub_dist_IR1);
   nh.advertise(pub_dist_IR2);
-  nh.advertise(pub_time);
 
   Timer1.initialize(TSAMPLE);
   Timer1.attachInterrupt(measure);
@@ -70,6 +59,6 @@ void setup() {
 
 void loop() {
   while(1){
-      // wait for interrupt rspectively next sampe
+      // wait for interrupt (respectively next sample)
   }
 }
