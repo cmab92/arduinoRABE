@@ -10,7 +10,7 @@ cb, 21.03.18
 #define IR0 A0
 #define IR1 A1
 #define IR2 A2
-#define TSAMPLE 16500 //in us (16500us := measuring cycle of 0a41sk )
+#define TSAMPLE 33000 //in us (16500us := measuring cycle of 0a41sk )
 #define DIST_THRES 1 // measurent larger than DIST_THRES is set to 0
 
 float timeStamp;

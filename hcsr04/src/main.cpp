@@ -15,7 +15,7 @@
 #define ECHO0 10
 #define ECHO1 11
 #define ECHO2 12
-#define TSAMPLE 16500 //in us (16500us := measuring cycle of 0a41sk )
+#define TSAMPLE 33000 //in us (16500us := measuring cycle of 0a41sk )
 #define BAUDRATE 57600
 
 double distance[3] = {0, 0, 0};
