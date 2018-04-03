@@ -146,30 +146,32 @@ void setup() {
 }
 
 void loop() {
-  for (int i = 0; i < 1; i++) {
-    imu::Quaternion quat = bno.getQuat();
-    quat_msg.w = (quat.w()/ONEQUATERNION);
-    quat_msg.x = (quat.x()/ONEQUATERNION);
-    quat_msg.y = (quat.y()/ONEQUATERNION);
-    quat_msg.z = (quat.z()/ONEQUATERNION);
-    pub_quat.publish( &quat_msg );
-    imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-    linacc_msg.x = vec_linacc.x();
-    linacc_msg.y = vec_linacc.y();
-    linacc_msg.z = vec_linacc.z();
-    pub_linacc.publish( &linacc_msg );
-    imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-    angvec_msg.x = vec_acc.x();
-    angvec_msg.y = vec_acc.y();
-    angvec_msg.z = vec_acc.z();
-    pub_angvec.publish( &angvec_msg );
-    delay(50); //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    nh.spinOnce();
+  while(1){
+    for (int i = 0; i < 1; i++) {
+      imu::Quaternion quat = bno.getQuat();
+      quat_msg.w = (quat.w()/ONEQUATERNION);
+      quat_msg.x = (quat.x()/ONEQUATERNION);
+      quat_msg.y = (quat.y()/ONEQUATERNION);
+      quat_msg.z = (quat.z()/ONEQUATERNION);
+      pub_quat.publish( &quat_msg );
+      imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+      linacc_msg.x = vec_linacc.x();
+      linacc_msg.y = vec_linacc.y();
+      linacc_msg.z = vec_linacc.z();
+      pub_linacc.publish( &linacc_msg );
+      imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+      angvec_msg.x = vec_acc.x();
+      angvec_msg.y = vec_acc.y();
+      angvec_msg.z = vec_acc.z();
+      pub_angvec.publish( &angvec_msg );
+      delay(50); //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      nh.spinOnce();
+    }
+    // Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, ACC_INT_SETTINGS_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, ACC_HG_DURATION_ADDR),HEX);
+    // Serial.println(bno.readBNO(1, ACC_HG_THRES_ADDR),HEX);
+    writeBNO(0, 0x3f, 0xc0); // reset interrupt pin, set extal
   }
-  // Serial.println(bno.readBNO(1, INT_EN_ADDR),HEX);
-  // Serial.println(bno.readBNO(1, INT_MSK_ADDR),HEX);
-  // Serial.println(bno.readBNO(1, ACC_INT_SETTINGS_ADDR),HEX);
-  // Serial.println(bno.readBNO(1, ACC_HG_DURATION_ADDR),HEX);
-  // Serial.println(bno.readBNO(1, ACC_HG_THRES_ADDR),HEX);
-  writeBNO(0, 0x3f, 0xc0); // reset interrupt pin, set extal
 }

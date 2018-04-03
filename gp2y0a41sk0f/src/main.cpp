@@ -10,7 +10,8 @@ cb, 21.03.18
 #define IR0 A0
 #define IR1 A1
 #define IR2 A2
-#define TSAMPLE 33000 //in us (16500us := measuring cycle of 0a41sk )
+#define IR3 A3
+#define TSAMPLE 16500 //in us (16500us := measuring cycle of 0a41sk )
 #define DIST_THRES 1 // measurent larger than DIST_THRES is set to 0
 
 float timeStamp;
@@ -22,6 +23,8 @@ std_msgs::Float32 dist_IR1_msg;
 ros::Publisher pub_dist_IR1("dist_IR1_msg", &dist_IR1_msg);
 std_msgs::Float32 dist_IR2_msg;
 ros::Publisher pub_dist_IR2("dist_IR2_msg", &dist_IR2_msg);
+std_msgs::Float32 dist_IR3_msg;
+ros::Publisher pub_dist_IR3("dist_IR3_msg", &dist_IR3_msg);
 
 
 // float calcDist( float analogVal){ // curve fitting to a*x^b+c
@@ -40,9 +43,11 @@ void measure( void ) {
   dist_IR0_msg.data = analogRead( IR0 );
   dist_IR1_msg.data = analogRead( IR1 );
   dist_IR2_msg.data = analogRead( IR2 );
+  dist_IR3_msg.data = analogRead( IR3 );
   pub_dist_IR0.publish( &dist_IR0_msg );
   pub_dist_IR1.publish( &dist_IR1_msg );
   pub_dist_IR2.publish( &dist_IR2_msg );
+  pub_dist_IR3.publish( &dist_IR3_msg );
   nh.spinOnce();
 }
 
@@ -52,6 +57,7 @@ void setup() {
   nh.advertise(pub_dist_IR0);
   nh.advertise(pub_dist_IR1);
   nh.advertise(pub_dist_IR2);
+  nh.advertise(pub_dist_IR3);
 
   Timer1.initialize(TSAMPLE);
   Timer1.attachInterrupt(measure);
