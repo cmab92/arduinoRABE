@@ -11,7 +11,7 @@ cb, 21.03.18
 #define IR1 A1
 #define IR2 A2
 #define IR3 A3
-#define TSAMPLE 16500 //in us (16500us := measuring cycle of 0a41sk )
+#define TSAMPLE 12000 //in us (16500us := measuring cycle of 0a41sk )
 #define DIST_THRES 1 // measurent larger than DIST_THRES is set to 0
 
 float timeStamp;
@@ -40,9 +40,13 @@ ros::Publisher pub_dist_IR3("dist_IR3_msg", &dist_IR3_msg);
 // }
 
 void measure( void ) {
+  analogRead(IR0);
   dist_IR0_msg.data = analogRead( IR0 );
+  analogRead(IR1);
   dist_IR1_msg.data = analogRead( IR1 );
+  analogRead(IR2);
   dist_IR2_msg.data = analogRead( IR2 );
+  analogRead(IR3);
   dist_IR3_msg.data = analogRead( IR3 );
   pub_dist_IR0.publish( &dist_IR0_msg );
   pub_dist_IR1.publish( &dist_IR1_msg );
