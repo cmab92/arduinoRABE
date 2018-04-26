@@ -14,7 +14,7 @@
 void writeBNO( void );
 void setCalReg( void );
 
-int valSelBno = 1;  // quat, linacc or angvec data
+int dataSelBno = 1;  // quat, linacc or angvec data
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -65,7 +65,7 @@ void measure( void ) {
     Serial.print( analogRead(i) );
     Serial.print( "," );
   }
-  if ( valSelBno==1 ) {
+  if ( dataSelBno==1 ) {
     imu::Quaternion quat = bno.getQuat();
     Serial.print( quat.w() );
     Serial.print( "," );
@@ -75,9 +75,10 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print( quat.z() );
     Serial.print( "," );
-    Serial.print(valSelBno);
+    Serial.print(dataSelBno);
+    Serial.print( "," );
   }
-  else if ( valSelBno==2 ) {
+  else if ( dataSelBno==2 ) {
     imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
     Serial.print( vec_linacc.x(), 5 );
     Serial.print( "," );
@@ -85,11 +86,12 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print( vec_linacc.z(), 5 );
     Serial.print( "," );
-    Serial.print( 0 ); // dummy, for consistent format
+    Serial.print( 0.0 ); // dummy, for consistent format
     Serial.print( "," );
-    Serial.print(valSelBno);
+    Serial.print(dataSelBno);
+    Serial.print( "," );
   }
-  else if ( valSelBno==3 ) {
+  else if ( dataSelBno==3 ) {
     imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
     Serial.print( vec_acc.x(), 5 );
     Serial.print( "," );
@@ -97,12 +99,13 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print( vec_acc.z(), 5 );
     Serial.print( "," );
-    Serial.print( 0 ); // dummy, for consistent format
+    Serial.print( 0.0 ); // dummy, for consistent format
     Serial.print( "," );
-    Serial.print(valSelBno);
-    valSelBno = 0;
+    Serial.print(dataSelBno);
+    Serial.print( "," );
+    dataSelBno = 0;
   }
-  valSelBno++;
+  dataSelBno++;
   Serial.print("\n");
 }
 
