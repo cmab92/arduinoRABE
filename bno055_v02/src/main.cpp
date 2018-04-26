@@ -39,7 +39,7 @@ ros::Publisher pub_quat("quat_msg", &quat_msg);
 // }
 
 void writeBNO( bool page, byte reg, byte value ){
-  // write safely
+  // make sure to write
   while ( !bno.writeBNO( page, reg, value ) ){
     bno.writeBNO( page, reg, value );
   }
@@ -102,6 +102,7 @@ void setup() {
   {
     delay(500);
     while((byte)(bno.readBNO(0, 0x00)) != ID){
+      // Serial.println("no bno detected");
       break;
     }
   }

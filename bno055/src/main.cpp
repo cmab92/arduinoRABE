@@ -93,7 +93,7 @@ void setup() {
 
   digitalWrite(BNO_IR_OUT, LOW);
 
-  // Serial.begin(57600);
+  // Serial.begin(57600);zz
   // Serial.println("setup");
   Wire.begin();
   delay(50);
