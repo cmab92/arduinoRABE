@@ -1,8 +1,30 @@
+/*
+Author: cb
+Date: April 18
+Purpose:
+ - read analog inputs (ir-data and force sensors)
+ - read bno data
+ - write data to serial
+ - gray coding analog data (?)
+ - write calibration registers of bno
+ -
+Attention:
+ - no high acceleration interrupt of bno (!)
+ - check BAUDRATE
+ - check TSAMPLE
+ - check NOI
+ - sda and scl on pin 20 / 21
+ - supply voltage for voltage divider of force sensor on pin 2
+ - only for atmega2560
+ - no interrupt control (conflict with i2c)
+ -  
+*/
 #include <TimerOne.h>
 #include <Wire.h>
 #include <Adafruit_BNO055.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "Arduino.h"
 
 #define TSAMPLE 16495 //in us (16500us := measuring cycle of 0a41sk/0a51sk/0a21ysk/0a02yk )
 #define NOI 14  // number of analog inputs (12 IR + 2 iefsr-force-sensors)
@@ -14,9 +36,13 @@
 void writeBNO( void );
 void setCalReg( void );
 
-int dataSelBno = 1;  // quat, linacc or angvec data
+int dataSelBno = 0;  // quat, linacc or angvec data
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
+
+unsigned int binaryToGray(unsigned short num) {
+  return (num>>1) ^ num;
+}
 
 void writeBNO( bool page, byte reg, byte value ){
   // write safely
@@ -62,10 +88,11 @@ void setCalReg( void ){
 void measure( void ) {
   for (int i = 0; i<NOI; i++){
     analogRead(i); // dummy measurement for adc
+    // Serial.print( binaryToGray(analogRead(i)) );
     Serial.print( analogRead(i) );
     Serial.print( "," );
   }
-  if ( dataSelBno==1 ) {
+  if ( dataSelBno!=1 && dataSelBno!=2 ) {
     imu::Quaternion quat = bno.getQuat();
     Serial.print( quat.w() );
     Serial.print( "," );
@@ -77,8 +104,9 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print(dataSelBno);
     Serial.print( "," );
+    dataSelBno = 1;
   }
-  else if ( dataSelBno==2 ) {
+  else if ( dataSelBno==1 ) {
     imu::Vector<3> vec_linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
     Serial.print( vec_linacc.x(), 5 );
     Serial.print( "," );
@@ -90,8 +118,9 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print(dataSelBno);
     Serial.print( "," );
+    dataSelBno = 2;
   }
-  else if ( dataSelBno==3 ) {
+  else if ( dataSelBno==2 ) {
     imu::Vector<3> vec_acc = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
     Serial.print( vec_acc.x(), 5 );
     Serial.print( "," );
@@ -105,12 +134,10 @@ void measure( void ) {
     Serial.print( "," );
     dataSelBno = 0;
   }
-  dataSelBno++;
   Serial.print("\n");
 }
 
-void setup()
-{
+void setup(){
   // const float countinterval = 0.032;
   // const unsigned long CPU = F_CPU;
   // const unsigned long prescale = 1024;
@@ -155,6 +182,7 @@ void setup()
   writeBNO(0, UNIT_SEL_ADDR, 0b10000000); // unit selection
 
   delay(100);
+
 }
 
 void loop() {
@@ -164,8 +192,10 @@ void loop() {
 
   while (1) {
     if ((micros () - lastMeasurement) >= TSAMPLE){
+      Serial.println(micros () - lastMeasurement);
       lastMeasurement = micros();
       measure();
+      Serial.println(micros () - lastMeasurement);
     }
   }
 }
