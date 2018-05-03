@@ -14,24 +14,25 @@ Attention:
  - check TSAMPLE
  - check NOI
  - sda and scl on pin 20 / 21
- - supply voltage for voltage divider of force sensor on pin 2
+ - supply voltage for voltage divider of force sensor on pin 2 (R2 = 15)
  - only for atmega2560
  - no interrupt control (conflict with i2c)
- -  
+ - quaternion data not normalized ( normalize by 16384 = 2¹⁴ LSB)
+ -
 */
-#include <TimerOne.h>
+
 #include <Wire.h>
 #include <Adafruit_BNO055.h>
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include "Arduino.h"
 
-#define TSAMPLE 16495 //in us (16500us := measuring cycle of 0a41sk/0a51sk/0a21ysk/0a02yk )
+#define TSAMPLE 16496 //in us (16500us := measuring cycle of 0a41sk/0a51sk/0a21ysk/0a02yk )
 #define NOI 14  // number of analog inputs (12 IR + 2 iefsr-force-sensors)
 #define VCCVD 2 // Vcc for voltage divider (force sensor)
 #define ONEQUATERNION 16384 // = 2^14 LSB
-#define RESOLUTION 65536    // Timer1 is 16 bit
 #define BAUDRATE 57600
+#define BNOPS0 2 // interrupt pin
+#define BNOPS1 3 // address pin
+#define BNOINT 52 // interrupt pin
+#define BNOADR 50 // address pin
 
 void writeBNO( void );
 void setCalReg( void );
@@ -88,6 +89,7 @@ void setCalReg( void ){
 void measure( void ) {
   for (int i = 0; i<NOI; i++){
     analogRead(i); // dummy measurement for adc
+    delayMicroseconds(50); // "cooldown" adc
     // Serial.print( binaryToGray(analogRead(i)) );
     Serial.print( analogRead(i) );
     Serial.print( "," );
@@ -102,7 +104,7 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print( quat.z() );
     Serial.print( "," );
-    Serial.print(dataSelBno);
+    Serial.print( dataSelBno );
     Serial.print( "," );
     dataSelBno = 1;
   }
@@ -116,7 +118,7 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print( 0.0 ); // dummy, for consistent format
     Serial.print( "," );
-    Serial.print(dataSelBno);
+    Serial.print( dataSelBno );
     Serial.print( "," );
     dataSelBno = 2;
   }
@@ -130,7 +132,7 @@ void measure( void ) {
     Serial.print( "," );
     Serial.print( 0.0 ); // dummy, for consistent format
     Serial.print( "," );
-    Serial.print(dataSelBno);
+    Serial.print( dataSelBno );
     Serial.print( "," );
     dataSelBno = 0;
   }
@@ -138,18 +140,12 @@ void measure( void ) {
 }
 
 void setup(){
-  // const float countinterval = 0.032;
-  // const unsigned long CPU = F_CPU;
-  // const unsigned long prescale = 1024;
-  // const unsigned count1 = (CPU * countinterval / prescale) + 0.5 - 1;
-  // // cli();
-  // TCCR3A = 0;
-  // TCCR3B = (1<< WGM33) | (1 << WGM32) | (1<< CS32) | (1 << CS30);
-  // ICR3   = count1;
-  // OCR3A = count1;
-  // TIMSK3 = (1 << OCIE3A);
-  // sei();
   pinMode(VCCVD, OUTPUT);
+  pinMode(BNOADR, OUTPUT);
+  pinMode(BNOINT, INPUT);
+  pinMode(BNOPS0, OUTPUT);
+  pinMode(BNOPS1, OUTPUT);
+  digitalWrite(BNOADR, LOW);
 
   Serial.begin(BAUDRATE);
   delay(50);
@@ -182,20 +178,18 @@ void setup(){
   writeBNO(0, UNIT_SEL_ADDR, 0b10000000); // unit selection
 
   delay(100);
-
 }
 
 void loop() {
 
-  measure();
   unsigned long lastMeasurement = micros();
+  measure();
 
   while (1) {
-    if ((micros () - lastMeasurement) >= TSAMPLE){
-      Serial.println(micros () - lastMeasurement);
+    if ((micros()-lastMeasurement) >= TSAMPLE){
       lastMeasurement = micros();
       measure();
-      Serial.println(micros () - lastMeasurement);
+      Serial.println(micros()-lastMeasurement);
     }
   }
 }
