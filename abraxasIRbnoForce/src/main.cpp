@@ -189,7 +189,7 @@ void loop() {
     if ((micros()-lastMeasurement) >= TSAMPLE){
       lastMeasurement = micros();
       measure();
-      Serial.println(micros()-lastMeasurement);
+      //Serial.println(micros()-lastMeasurement);
     }
   }
 }
