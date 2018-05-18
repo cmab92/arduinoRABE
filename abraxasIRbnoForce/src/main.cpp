@@ -25,8 +25,8 @@ Attention:
 #include <Adafruit_BNO055.h>
 
 #define TSAMPLE 16496 //in us (16500us := measuring cycle of 0a41sk/0a51sk/0a21ysk/0a02yk )
-#define NOI 14  // number of analog inputs (12 IR + 2 iefsr-force-sensors)
-#define VCCVD 2 // Vcc for voltage divider (force sensor)
+#define NOI 12  // number of analog inputs (12 IR + 2 iefsr-force-sensors)
+#define VCCVD 2 // optional Vcc for voltage divider (force sensor)
 #define ONEQUATERNION 16384 // = 2^14 LSB
 #define BAUDRATE 57600
 #define BNOPS0 2 // interrupt pin
@@ -58,7 +58,7 @@ void setCalReg( void ){
     the cal-values below are the mean of following 10 cal.-results:
     vals = [
           0   244   229    13   248   255    17   236   224   255
-          0   255   255     0   255   255     0   255   255   255
+          0   255   255     0   255   255     0   255   255   255k
          11    16    24     4    16    18    31   248   255    13
           0     0     0     0     0     0     0   255   255     0
           9    14    14    12    20    15     7     9     6     4
@@ -89,7 +89,7 @@ void setCalReg( void ){
 void measure( void ) {
   for (int i = 0; i<NOI; i++){
     analogRead(i); // dummy measurement for adc
-    delayMicroseconds(50); // "cooldown" adc
+    // delayMicroseconds(50); // "cooldown" adc
     // Serial.print( binaryToGray(analogRead(i)) );
     Serial.print( analogRead(i) );
     Serial.print( "," );
