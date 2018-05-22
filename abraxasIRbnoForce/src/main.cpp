@@ -175,7 +175,7 @@ void setup(){
   setCalReg();
   writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
   writeBNO(0, OPR_MODE_REG, NDOF_OPR);
-  writeBNO(0, UNIT_SEL_ADDR, 0b10000000); // unit selection
+  writeBNO(0, UNIT_SEL_ADDR, 0b10000000); // unit selection   linacc = [m/s^2] and angvec = [Dps]
 
   delay(100);
 }
