@@ -25,7 +25,7 @@ Attention:
 #include <Adafruit_BNO055.h>
 
 #define TSAMPLE 16496 //in us (16500us := measuring cycle of 0a41sk/0a51sk/0a21ysk/0a02yk )
-#define NOI 12  // number of analog inputs (12 IR + 2 iefsr-force-sensors)
+#define NOI 1 //12  // number of analog inputs (12 IR + 2 iefsr-force-sensors)
 #define VCCVD 2 // optional Vcc for voltage divider (force sensor)
 #define ONEQUATERNION 16384 // = 2^14 LSB
 #define BAUDRATE 57600
