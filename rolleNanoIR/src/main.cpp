@@ -21,7 +21,7 @@ Attention:
 #define BAUDRATE 57600
 #define VDDSUPPLY1 11
 #define VDDSUPPLY2 12
-#define WWIDTH 15
+#define WWIDTH 12
 
 void measure( void ) {
   int val[NOI];

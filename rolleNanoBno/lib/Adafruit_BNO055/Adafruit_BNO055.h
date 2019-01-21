@@ -19,6 +19,7 @@
 
 #define ID                           0xa0
 #define CONFIG_OPR                   0x00 // on OPR_MODE_REG
+#define NDOF_FMC_OFF_OPR             0x0b // on OPR_MODE_REG
 #define NDOF_OPR                     0x0c // on OPR_MODE_REG
 #define IMU_MODE                     0x08 // on OPR_MODE_REG
 #define RESET                        0x20 // on SYS_TRIGGER_REG
@@ -38,7 +39,7 @@
 #define ACCEL_OFFSET_X_MSB_ADDR      0x56
 #define ACCEL_OFFSET_Y_LSB_ADDR      0x57
 #define ACCEL_OFFSET_Y_MSB_ADDR      0x58
-#define ACCEL_OFFSET_Z_LSB_ADDR      0x59
+#define ACCEL_OFFSET_Z_LSB_ADDR      0x598
 #define ACCEL_OFFSET_Z_MSB_ADDR      0x5a
 
 // Magnetometer Offset registers

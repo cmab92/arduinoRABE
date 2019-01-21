@@ -28,10 +28,44 @@ void setCalReg( void );
 
 int dataSelBno = 0;  // quat, linacc or angvec data
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55);
+Adafruit_BNO055 bno = Adafruit_BNO055(0xa0);
 
 unsigned int binaryToGray(unsigned short num) {
   return (num>>1) ^ num;
+}
+
+void setCalReg( void ){
+  // write calibration offset
+  /*
+    the cal-values below are the mean of following 10 cal.-results:
+    vals = [
+          0   244   229    13   248   255    17   236   224   255
+          0   255   255     0   255   255     0   255   255   255
+         11    16    24     4    16    18    31   248   255    13
+          0     0     0     0     0     0     0   255   255     0
+          9    14    14    12    20    15     7     9     6     4
+          0     0     0     0     0     0     0     0     0     0
+         88    92    84   111    85   110    55    92    73    66
+          0     0     0     0     0     0     0     0     0     0
+        147   139   146   130   154   141   141   139   144   142
+          0     0     0     0     0     0     0     0     0     0
+        122    78    84    89   106    63    74    83    88    80
+          0     0     0     0     0     0     0     0     0     0
+        249   255   255   255   255   255   255   255   254   254
+        255   255   255   255   255   255   255   255   255   255
+        252     0     0     0   255     0     0     0   255   255
+        255     0     0     0   255     0     0     0   255   255
+          5     0     0     0     1     0     0     0     0     0
+          0     0     0     0     0     0     0     0     0     0
+        232   232   232   232   232   232   232   232   232   232
+          3     3     3     3     3     3     3     3     3     3
+         37   209    23   247    16    16   125   176   108   214
+          3     2     3     2     3     3     3     2     3     2]
+  */ // <- thats how the values are chosen, order is flipped from version 1... take care !!!
+  byte calvals[22] = {172,179,64,51,11,0,86,0,142,0,87,0,254,255,102,102,1,0,232,3,117,3};
+  for ( int i = 0x55; i< 0x6b; i++ ){
+    bno.writeBNO(0, i, (byte)(calvals[i-0x55]) );
+  }
 }
 
 void writeBNO( bool page, byte reg, byte value ){
@@ -81,11 +115,15 @@ void setup(){
   Wire.begin();
   delay(50);
 
+  Serial.println(bno.readBNO(0, 0x00));
+
+  Serial.println(ID);
+
   if((byte)(bno.readBNO(0, 0x00)) != ID){
-    delay(500);
     while((byte)(bno.readBNO(0, 0x00)) != ID){
+      delay(50);
+      Serial.println(bno.readBNO(0, 0x00));
       Serial.println("no bno detected");
-      delay(100);
     }
   }
 
@@ -99,8 +137,9 @@ void setup(){
   writeBNO(0, OPR_MODE_REG, CONFIG_OPR );
   writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
   writeBNO(0, PWR_MODE_REG, NORMAL_PWR); // normal power mode enabled
-  writeBNO(0, UNIT_SEL_ADDR, 0b10000010); // unit selection   linacc = [m/s^2] and angvec = [Dps]
-  writeBNO(0, OPR_MODE_REG, NDOF_OPR); // IMU_MODE
+  writeBNO(0, UNIT_SEL_ADDR, 0b10000010); // unit selection   linacc = [m/s^2] and angvec = [Rps]
+  writeBNO(0, OPR_MODE_REG, NDOF_FMC_OFF_OPR); // IMU_MODE
+  setCalReg();
   delay(500);
 }
 
