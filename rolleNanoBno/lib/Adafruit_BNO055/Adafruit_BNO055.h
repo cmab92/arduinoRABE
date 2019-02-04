@@ -15,7 +15,7 @@
 #include <utility/imumaths.h>
 
 // BNO constants (modes etc.)
-#define ADDRESS                      0x28
+#define ADDRESS                      0x29
 
 #define ID                           0xa0
 #define CONFIG_OPR                   0x00 // on OPR_MODE_REG
@@ -264,7 +264,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
 
     } adafruit_bno055_reg_t;
 
-    Adafruit_BNO055 ( int32_t sensorID = -1, uint8_t address = (0x28) );
+    Adafruit_BNO055 ( int32_t sensorID = -1, uint8_t address = (ADDRESS) );
 
     bool            writeBNO       ( bool page, byte reg, byte value );
     byte            readBNO        ( bool page, byte reg );

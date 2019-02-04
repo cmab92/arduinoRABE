@@ -28,11 +28,7 @@ void setCalReg( void );
 
 int dataSelBno = 0;  // quat, linacc or angvec data
 
-Adafruit_BNO055 bno = Adafruit_BNO055(0xa0);
-
-unsigned int binaryToGray(unsigned short num) {
-  return (num>>1) ^ num;
-}
+Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29);
 
 void setCalReg( void ){
   // write calibration offset
@@ -69,9 +65,11 @@ void setCalReg( void ){
 }
 
 void writeBNO( bool page, byte reg, byte value ){
+  bno.writeBNO( page, reg, value );
+  /*
   while ( !bno.writeBNO( page, reg, value ) ){
     delay(15);
-  }
+  }*/
 }
 
 void measure( void ) {
@@ -113,16 +111,16 @@ void setup(){
   Serial.begin(BAUDRATE);
   delay(50);
   Wire.begin();
+  Wire.beginTransmission(ADDRESS);
+  writeBNO(0, SYS_TRIGGER_REG, RESET); // reset bno
   delay(50);
-
+  writeBNO(0, SYS_TRIGGER_REG, RESET); // reset bno
   Serial.println(bno.readBNO(0, 0x00));
 
-  Serial.println(ID);
-
-  if((byte)(bno.readBNO(0, 0x00)) != ID){
-    while((byte)(bno.readBNO(0, 0x00)) != ID){
-      delay(50);
-      Serial.println(bno.readBNO(0, 0x00));
+  if((byte)(bno.readBNO(0, 0x00)) != (byte)(ID)){
+    while((byte)(bno.readBNO(0, 0x00)) != (byte)(ID)){
+      delay(500);
+      Serial.println(bno.readBNO(0, 0x00), HEX);
       Serial.println("no bno detected");
     }
   }
