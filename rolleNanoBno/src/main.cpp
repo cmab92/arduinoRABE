@@ -136,7 +136,7 @@ void setup(){
   writeBNO(0, SYS_TRIGGER_REG, EXTAL); // external crystal use enabled
   writeBNO(0, PWR_MODE_REG, NORMAL_PWR); // normal power mode enabled
   writeBNO(0, UNIT_SEL_ADDR, 0b10000010); // unit selection   linacc = [m/s^2] and angvec = [Rps]
-  writeBNO(0, OPR_MODE_REG, NDOF_FMC_OFF_OPR); // IMU_MODE
+  writeBNO(0, OPR_MODE_REG, NDOF_OPR); // IMU_MODE
   setCalReg();
   delay(500);
 }
