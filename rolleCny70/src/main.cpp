@@ -84,6 +84,7 @@ void loop() {
     Serial.print(velo_1, 4);
     Serial.print(", ");
     Serial.print(velo_2, 4);
+    Serial.print(", ");
     Serial.print("\n");
     velo_1 = 0;
     velo_2 = 0;

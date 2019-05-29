@@ -28,7 +28,7 @@ void setCalReg( void );
 
 int dataSelBno = 0;  // quat, linacc or angvec data
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29);
+Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 
 void setCalReg( void ){
   // write calibration offset
@@ -115,13 +115,13 @@ void setup(){
   writeBNO(0, SYS_TRIGGER_REG, RESET); // reset bno
   delay(50);
   writeBNO(0, SYS_TRIGGER_REG, RESET); // reset bno
-  Serial.println(bno.readBNO(0, 0x00));
+  //Serial.println(bno.readBNO(0, 0x00));
 
   if((byte)(bno.readBNO(0, 0x00)) != (byte)(ID)){
     while((byte)(bno.readBNO(0, 0x00)) != (byte)(ID)){
       delay(500);
-      Serial.println(bno.readBNO(0, 0x00), HEX);
-      Serial.println("no bno detected");
+      //Serial.println(bno.readBNO(0, 0x00), HEX);
+      //Serial.println("no bno detected");
     }
   }
 
@@ -137,6 +137,11 @@ void setup(){
   writeBNO(0, PWR_MODE_REG, NORMAL_PWR); // normal power mode enabled
   writeBNO(0, UNIT_SEL_ADDR, 0b10000010); // unit selection   linacc = [m/s^2] and angvec = [Rps]
   writeBNO(0, OPR_MODE_REG, NDOF_OPR); // IMU_MODE
+  //Serial.println(bno.readBNO(1, 0x0D));
+  //writeBNO(1, 0x0D, (bno.readBNO(1, 0x0D) && 0b11111100));
+  //Serial.println(bno.readBNO(1, 0x0D));
+  //writeBNO(0, OPR_MODE_REG, NDOF_OPR); // IMU_MODE
+  //Serial.println(bno.readBNO(1, 0x0D));
   setCalReg();
   delay(500);
 }

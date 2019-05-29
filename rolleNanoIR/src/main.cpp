@@ -21,7 +21,7 @@ Attention:
 #define BAUDRATE 57600
 #define VDDSUPPLY1 11
 #define VDDSUPPLY2 12
-#define WWIDTH 12
+#define WWIDTH 32
 
 void measure( void ) {
   int val[NOI];
@@ -43,7 +43,7 @@ void measure( void ) {
 
 void setup(){
   Serial.begin(BAUDRATE);
-  delay(50);
+  delay(20);
   pinMode(VDDSUPPLY1, OUTPUT);
   pinMode(VDDSUPPLY2, OUTPUT);
 }
